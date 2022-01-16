@@ -85,50 +85,6 @@ func (c *Config) AddCommand(names []string, newCmd Command) error {
 	return c.RootCommand.AddSubCommand(names, newCmd)
 }
 
-/*
-func (c *Config) AddCommand(names []string, newCmd Command) error {
-	curr := c.RootCommand
-	for i, n := range names {
-		//rog.Print("*", i, n)
-
-		isLast := i == len(names)-1
-		//rog.Print("isLast: ", isLast)
-
-		//rog.Print(curr)
-		cmd, found := curr.SubCommands[n]
-		//rog.Print(found, cmd)
-
-		if found {
-			isLeaf := cmd.IsLeaf()
-
-			if isLast {
-				if isLeaf {
-					*cmd = newCmd
-				} else {
-					return fmt.Errorf("remove the command %q first", n)
-				}
-			} else {
-				if isLeaf {
-					return fmt.Errorf("remove the command %q first", n)
-				} else {
-					curr = cmd
-				}
-			}
-		} else {
-			if isLast {
-				curr.SubCommands[n] = &newCmd
-			} else {
-				curr.SubCommands[n] = &Command{SubCommands: make(map[string]*Command)}
-				curr = curr.SubCommands[n]
-				//rog.Print(curr)
-			}
-		}
-	}
-
-	return nil
-}
-*/
-
 func (c *Config) RemoveCommand(names []string) error {
 	clise.Filter(&names, func(i int) bool {
 		return strings.TrimSpace(names[i]) != ""
@@ -142,39 +98,3 @@ func (c *Config) RemoveCommand(names []string) error {
 
 	return nil
 }
-
-/*
-func (c *Config) RemoveCommand(names []string) error {
-	curr := c.RootCommand
-	for i, n := range names {
-		//rog.Print("*", i, n)
-
-		isLast := i == len(names)-1
-		//rog.Print("isLast: ", isLast)
-
-		//rog.Print(curr)
-		cmd, found := curr.SubCommands[n]
-		//rog.Print(found, cmd)
-
-		if found {
-			isLeaf := cmd.IsLeaf()
-
-			if isLast {
-				delete(curr.SubCommands, n)
-			} else {
-				if isLeaf {
-					return errors.New("not found")
-				} else {
-					curr = cmd
-				}
-			}
-		} else {
-			return errors.New("not found")
-		}
-	}
-
-	c.RootCommand.Clean()
-
-	return nil
-}
-*/
