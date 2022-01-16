@@ -11,8 +11,6 @@ type Command struct {
 	Path string   `json:"path,omitempty"`
 	Args []string `json:"args,omitempty"`
 
-	Comment string `json:"comment,omitempty"`
-
 	SubCommands map[string]*Command `json:"sub,omitempty"`
 }
 
