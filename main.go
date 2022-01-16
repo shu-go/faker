@@ -164,7 +164,7 @@ func loadConfig(configPath string) (Config, error) {
 	}
 	defer file.Close()
 
-	config, err := LoadConfig(file)
+	config, _ := LoadConfig(file)
 	if config == nil {
 		type OldCommand struct {
 			Name string
@@ -176,7 +176,11 @@ func loadConfig(configPath string) (Config, error) {
 			Commands []OldCommand
 		}
 
-		file.Seek(0, 0)
+		_, err = file.Seek(0, 0)
+		if err != nil {
+			file.Close()
+			return *NewConfig(), err
+		}
 
 		content, err := ioutil.ReadAll(file)
 		if err != nil {
@@ -198,10 +202,14 @@ func loadConfig(configPath string) (Config, error) {
 				Path: oc.Path,
 				Args: oc.Args,
 			}
-			config.AddCommand([]string{oc.Name}, cmd)
+			err := config.AddCommand([]string{oc.Name}, cmd)
+			return *config, err
 		}
 
-		saveConfig(configPath, *config)
+		err = saveConfig(configPath, *config)
+		if err != nil {
+			return *config, err
+		}
 	}
 
 	return *config, nil
@@ -377,5 +385,5 @@ config dir:
 	app.Usage = strings.ReplaceAll(app.Usage, "{appname}", appname)
 	app.Usage = strings.ReplaceAll(app.Usage, "{userConfigFolder}", userConfigFolder)
 	app.Copyright = "(C) 2021 Shuhei Kubota"
-	app.Run(os.Args)
+	_ = app.Run(os.Args)
 }
