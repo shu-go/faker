@@ -10,16 +10,20 @@ import (
 	"github.com/shu-go/clise"
 )
 
+// Config is saved as a JSON file.
 type Config struct {
+	// RootCommand (type *+Command) is a root node of Comand tree.
 	RootCommand *Command `json:"cmds,omitempty"`
 }
 
+// NewConfig returns a empty and working Config.
 func NewConfig() *Config {
 	return &Config{
 		RootCommand: &Command{SubCommands: make(map[string]*Command)},
 	}
 }
 
+// LoadConfig read from a Reader in (JSON formatted content required).
 func LoadConfig(in io.Reader) (*Config, error) {
 	var c Config
 
@@ -40,6 +44,7 @@ func LoadConfig(in io.Reader) (*Config, error) {
 	return &c, nil
 }
 
+// Save writes to a Writer out.
 func (c Config) Save(out io.Writer) error {
 	content, err := json.MarshalIndent(c, "", "  ")
 	if err != nil {
@@ -54,6 +59,7 @@ func (c Config) Save(out io.Writer) error {
 	return nil
 }
 
+// FindCommand takes commandline args and split into a Command and remaining args.
 func (c Config) FindCommand(args []string) (*Command, []string, error) {
 	curr := c.RootCommand
 	//rog.Print(curr)
@@ -78,6 +84,7 @@ func (c Config) FindCommand(args []string) (*Command, []string, error) {
 	return curr, args[lastIdx+1:], nil
 }
 
+// AddCommand adds a Command newCmd to the location specified by names.
 func (c *Config) AddCommand(names []string, newCmd Command) error {
 	clise.Filter(&names, func(i int) bool {
 		return strings.TrimSpace(names[i]) != ""
@@ -85,6 +92,7 @@ func (c *Config) AddCommand(names []string, newCmd Command) error {
 	return c.RootCommand.AddSubCommand(names, newCmd)
 }
 
+// RemoveCommand removes a Command of the location specified by names.
 func (c *Config) RemoveCommand(names []string) error {
 	clise.Filter(&names, func(i int) bool {
 		return strings.TrimSpace(names[i]) != ""
