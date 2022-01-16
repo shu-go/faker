@@ -33,7 +33,7 @@ type globalCmd struct {
 	ListPath bool `cli:"list-by-path"`
 }
 
-func (c globalCmd) Before(args []string) error {
+func (c globalCmd) Before() error {
 	if c.Add != "" && c.Remove != "" {
 		return errors.New("don't pass both --add and --remove!!")
 	}
@@ -98,7 +98,7 @@ func (c globalCmd) Run(args []string) error {
 	// 	return nil
 	// }
 
-	exitCode, err := execCommand(config, fcmd, fargs)
+	exitCode, err := execCommand(fcmd, fargs)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 	}
@@ -265,7 +265,7 @@ func removeCommand(config Config, name string) error {
 	return nil
 }
 
-func execCommand(config Config, fcmd *Command, fargs []string) (int, error) {
+func execCommand(fcmd *Command, fargs []string) (int, error) {
 	oscmds := make([]exec.Cmd, 1)
 	curr := &oscmds[0]
 	curr.Path = fcmd.Path
