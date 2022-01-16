@@ -30,6 +30,13 @@ f gitinit
 f --remove gitinit
 ```
 
+## add sub command
+
+```
+f --add m.c calc
+f m c
+```
+
 ## make another faker
 
 ```
