@@ -109,9 +109,8 @@ func (c *Command) RemoveSubCommand(names []string) error {
 		} else {
 			if isGroup {
 				return cmd.RemoveSubCommand(names[1:])
-			} else {
-				return errors.New("not found")
 			}
+			return errors.New("not found")
 		}
 	} else {
 		return errors.New("not found")
