@@ -129,12 +129,12 @@ func (c *Command) RemoveSubCommand(names []string) error {
 	return nil
 }
 
-// Clean removes SubCommands if empty, recursively.
-func (c *Command) Clean() bool {
+// Clean removes commands from SubCommands where not runnable and not a group.
+func (c *Command) Clean() {
 	subNames := []string{}
 	for n, sub := range c.SubCommands {
-		cleaned := sub.Clean()
-		if cleaned {
+		sub.Clean()
+		if !sub.IsGroup() && !sub.IsRunnable() {
 			subNames = append(subNames, n)
 		}
 	}
@@ -142,11 +142,4 @@ func (c *Command) Clean() bool {
 	for _, n := range subNames {
 		delete(c.SubCommands, n)
 	}
-
-	if len(c.SubCommands) == 0 {
-		c.SubCommands = nil
-		return c.IsGroup() && c.IsRunnable()
-	}
-
-	return false
 }
