@@ -92,7 +92,7 @@ func (c *Config) AddCommand(names []string, newCmd Command) error {
 	return c.RootCommand.AddSubCommand(names, newCmd)
 }
 
-// RemoveCommand removes a Command of the location specified by names.
+// RemoveCommand removes a Command at the location specified by names.
 func (c *Config) RemoveCommand(names []string) error {
 	clise.Filter(&names, func(i int) bool {
 		return strings.TrimSpace(names[i]) != ""

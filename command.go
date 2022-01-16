@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Command have both runnable command data (Path and Args) and group data (SubCommands).
 type Command struct {
 	Path string   `json:"path,omitempty"`
 	Args []string `json:"args,omitempty"`
@@ -14,10 +15,13 @@ type Command struct {
 	SubCommands map[string]*Command `json:"sub,omitempty"`
 }
 
+// IsGroup returns if Command c is also a group.
+// It does not care about c have runnable command data.
 func (c Command) IsGroup() bool {
 	return len(c.SubCommands) != 0
 }
 
+// PrintCommand prints itself and its SubCommands to stddout.
 func (c Command) PrintCommand(name string, byPath bool, indent int) {
 	//rog.Printf("PrintCommand: %v, %v", name, indent)
 
@@ -56,6 +60,7 @@ func (c Command) PrintCommand(name string, byPath bool, indent int) {
 	}
 }
 
+// AddSubCommand adds a Command newCmd to the location specified by names.
 func (c *Command) AddSubCommand(names []string, newCmd Command) error {
 	if len(names) == 0 {
 		return nil
@@ -90,6 +95,7 @@ func (c *Command) AddSubCommand(names []string, newCmd Command) error {
 	return nil
 }
 
+// RemoveSubCommand removes a Command at the location specified by names.
 func (c *Command) RemoveSubCommand(names []string) error {
 	if len(names) == 0 {
 		return nil
@@ -117,6 +123,7 @@ func (c *Command) RemoveSubCommand(names []string) error {
 	return nil
 }
 
+// Clean removes SubCommands if empty, recursively.
 func (c *Command) Clean() bool {
 	subNames := []string{}
 	for n, sub := range c.SubCommands {
