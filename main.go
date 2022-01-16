@@ -319,7 +319,7 @@ func execCommand(config Config, fcmd *Command, fargs []string) (int, error) {
 		//rog.Print("pipe")
 		stdoutPipe, err := oscmds[i-1].StdoutPipe()
 		if err != nil {
-			return 1, fmt.Errorf("stdoutPipe: %v", err)
+			return 1, fmt.Errorf("stdoutPipe: %w", err)
 		}
 		oscmds[i].Stdin = stdoutPipe
 		oscmds[i].Stderr = os.Stderr
@@ -330,7 +330,7 @@ func execCommand(config Config, fcmd *Command, fargs []string) (int, error) {
 		//rog.Printf("starting %#v", c)
 		err = oscmds[i].Start()
 		if err != nil {
-			return 1, fmt.Errorf("start: %v\n", err)
+			return 1, fmt.Errorf("start: %w", err)
 		}
 	}
 
