@@ -386,5 +386,10 @@ config dir:
 	app.Usage = strings.ReplaceAll(app.Usage, "{appname}", appname)
 	app.Usage = strings.ReplaceAll(app.Usage, "{userConfigFolder}", userConfigFolder)
 	app.Copyright = "(C) 2021 Shuhei Kubota"
-	_ = app.Run(os.Args)
+	app.SuppressErrorOutput = true
+	err := app.Run(os.Args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
