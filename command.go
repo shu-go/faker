@@ -16,17 +16,24 @@ type Command struct {
 	SubCommands map[string]*Command `json:"sub,omitempty"`
 }
 
-func (c Command) IsLeaf() bool {
-	return c.Path != ""
+func (c Command) IsGroup() bool {
+	return len(c.SubCommands) != 0
 }
 
 func (c Command) PrintCommand(name string, byPath bool, indent int) {
 	//rog.Printf("PrintCommand: %v, %v", name, indent)
 
-	if c.IsLeaf() {
+	if name != "" {
+		var cmdInfo string
+		if c.Path != "" {
+			cmdInfo = fmt.Sprintf("%s %v", c.Path, c.Args)
+		}
+
+		if indent < 0 {
+			indent = 0
+		}
 		spaces := strings.Repeat("  ", indent)
-		fmt.Printf("\t%s%s:\t%s %v\n", spaces, name, c.Path, c.Args)
-		return
+		fmt.Printf("\t%s%s:\t%s\n", spaces, name, cmdInfo)
 	}
 
 	keyNames := []struct {
@@ -46,11 +53,7 @@ func (c Command) PrintCommand(name string, byPath bool, indent int) {
 
 	for _, k := range keyNames {
 		v := c.SubCommands[k.Name]
-		spaces := strings.Repeat("  ", indent+1)
 		//rog.Printf("PrintCommand: %v", k)
-		if !v.IsLeaf() {
-			fmt.Printf("\t%s%s:\n", spaces, k.Name)
-		}
 		v.PrintCommand(k.Name, byPath, indent+1)
 	}
 }
@@ -68,22 +71,15 @@ func (c *Command) AddSubCommand(names []string, newCmd Command) error {
 	//rog.Print(found, cmd)
 
 	if found {
-		isLeaf := cmd.IsLeaf()
-
 		if isLast {
-			if isLeaf {
-				*cmd = newCmd
-			} else {
-				return fmt.Errorf("remove the command %q first", name)
-			}
+			*cmd = newCmd
 		} else {
-			if isLeaf {
-				return fmt.Errorf("remove the command %q first", name)
-			} else {
-				return cmd.AddSubCommand(names[1:], newCmd)
-			}
+			return cmd.AddSubCommand(names[1:], newCmd)
 		}
 	} else {
+		if c.SubCommands == nil {
+			c.SubCommands = make(map[string]*Command)
+		}
 		if isLast {
 			c.SubCommands[name] = &newCmd
 		} else {
@@ -106,15 +102,15 @@ func (c *Command) RemoveSubCommand(names []string) error {
 
 	cmd, found := c.SubCommands[name]
 	if found {
-		isLeaf := cmd.IsLeaf()
+		isGroup := cmd.IsGroup()
 
 		if isLast {
 			delete(c.SubCommands, name)
 		} else {
-			if isLeaf {
-				return errors.New("not found")
-			} else {
+			if isGroup {
 				return cmd.RemoveSubCommand(names[1:])
+			} else {
+				return errors.New("not found")
 			}
 		}
 	} else {
@@ -139,7 +135,7 @@ func (c *Command) Clean() bool {
 
 	if len(c.SubCommands) == 0 {
 		c.SubCommands = nil
-		return !c.IsLeaf()
+		return c.IsGroup() && c.Path != ""
 	}
 
 	return false

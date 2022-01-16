@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -53,16 +52,6 @@ func (c Config) Save(out io.Writer) error {
 	}
 
 	return nil
-}
-
-func (c Config) PrintCommands(configPath string, byPath bool) {
-	fmt.Println("Commands:")
-	if c.RootCommand != nil {
-		c.RootCommand.PrintCommand("", byPath, -1)
-	}
-
-	fmt.Println("")
-	fmt.Printf("Config: %s\n", configPath)
 }
 
 func (c Config) FindCommand(args []string) (*Command, []string, error) {

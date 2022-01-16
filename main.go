@@ -49,8 +49,17 @@ func (c globalCmd) Run(args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 	}
 
-	if len(args) < 1 || c.List || c.ListPath {
-		config.PrintCommands(configPath, c.ListPath)
+	if c.Add == "" && c.Remove == "" && len(args) < 1 {
+		//config.PrintCommands(configPath, c.ListPath)
+		printCommands("", *config.RootCommand, configPath, c.ListPath)
+		return nil
+	}
+	if c.List || c.ListPath {
+		fcmd, _, err := config.FindCommand(args)
+		if err != nil {
+			return err
+		}
+		printCommands(args[len(args)-1], *fcmd, configPath, c.ListPath)
 		return nil
 	}
 
@@ -84,10 +93,10 @@ func (c globalCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !fcmd.IsLeaf() {
-		fcmd.PrintCommand("", false, -1)
-		return nil
-	}
+	// if fcmd.IsGroup() {
+	// 	fcmd.PrintCommand("", false, -1)
+	// 	return nil
+	// }
 
 	exitCode, err := execCommand(config, fcmd, fargs)
 	if err != nil {
@@ -212,6 +221,14 @@ func saveConfig(configPath string, config Config) error {
 	file.Close()
 
 	return nil
+}
+
+func printCommands(name string, fcmd Command, configPath string, byPath bool) {
+	fmt.Println("Commands:")
+	fcmd.PrintCommand(name, byPath, -1)
+
+	fmt.Println("")
+	fmt.Printf("Config: %s\n", configPath)
 }
 
 func addCommand(config Config, name, path string, args []string) error {
