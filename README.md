@@ -1,6 +1,6 @@
 command faker
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/shu-go/f)](https://goreportcard.com/report/github.com/shu-go/f)
+[![Go Report Card](https://goreportcard.com/badge/github.com/shu-go/faker)](https://goreportcard.com/report/github.com/shu-go/faker)
 ![MIT License](https://img.shields.io/badge/License-MIT-blue)
 
 # Usage
