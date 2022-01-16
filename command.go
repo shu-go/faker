@@ -75,6 +75,7 @@ func (c *Command) AddSubCommand(names []string, newCmd Command) error {
 
 	if found {
 		if isLast {
+			newCmd.SubCommands = cmd.SubCommands
 			*cmd = newCmd
 		} else {
 			return cmd.AddSubCommand(names[1:], newCmd)
