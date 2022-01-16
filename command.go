@@ -21,13 +21,18 @@ func (c Command) IsGroup() bool {
 	return len(c.SubCommands) != 0
 }
 
+// IsRunnable returns if Command c is runnable.
+func (c Command) IsRunnable() bool {
+	return c.Path != ""
+}
+
 // PrintCommand prints itself and its SubCommands to stddout.
 func (c Command) PrintCommand(name string, byPath bool, indent int) {
 	//rog.Printf("PrintCommand: %v, %v", name, indent)
 
 	if name != "" {
 		var cmdInfo string
-		if c.Path != "" {
+		if c.IsRunnable() {
 			cmdInfo = fmt.Sprintf("%s %v", c.Path, c.Args)
 		}
 
@@ -140,7 +145,7 @@ func (c *Command) Clean() bool {
 
 	if len(c.SubCommands) == 0 {
 		c.SubCommands = nil
-		return c.IsGroup() && c.Path != ""
+		return c.IsGroup() && c.IsRunnable()
 	}
 
 	return false

@@ -94,7 +94,7 @@ func (c globalCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if fcmd.Path == "" {
+	if !fcmd.IsRunnable() {
 		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, c.ListPath)
 		return nil
 	}
