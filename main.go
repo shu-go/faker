@@ -94,10 +94,10 @@ func (c globalCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	// if fcmd.IsGroup() {
-	// 	fcmd.PrintCommand("", false, -1)
-	// 	return nil
-	// }
+	if fcmd.Path == "" {
+		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, c.ListPath)
+		return nil
+	}
 
 	exitCode, err := execCommand(fcmd, fargs)
 	if err != nil {
