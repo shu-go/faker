@@ -33,6 +33,7 @@ type globalCmd struct {
 	ListPath bool `cli:"list-by-path"`
 }
 
+// Before checks commandline validity.
 func (c globalCmd) Before() error {
 	if c.Add != "" && c.Remove != "" {
 		return errors.New("don't pass both --add and --remove!!")
