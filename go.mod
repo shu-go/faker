@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/shu-go/clise v0.0.0-20190822023516-79849fb81cfe
-	github.com/shu-go/gli v1.3.1
+	github.com/shu-go/gli v1.3.2
 )
 
 require (
