@@ -386,6 +386,7 @@ config dir:
 	app.Usage = strings.ReplaceAll(app.Usage, "{appname}", appname)
 	app.Usage = strings.ReplaceAll(app.Usage, "{userConfigFolder}", userConfigFolder)
 	app.Copyright = "(C) 2021 Shuhei Kubota"
+	app.DoubleHyphen = false
 	app.SuppressErrorOutput = true
 	err := app.Run(os.Args)
 	if err != nil {
