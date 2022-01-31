@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -14,6 +13,8 @@ import (
 type Config struct {
 	// RootCommand (type *+Command) is a root node of Comand tree.
 	RootCommand *Command `json:"cmds,omitempty"`
+
+	SubMatch bool `json:"submatch,omitempty"`
 }
 
 // NewConfig returns a empty and working Config.
@@ -61,27 +62,8 @@ func (c Config) Save(out io.Writer) error {
 
 // FindCommand takes commandline args and split into a Command and remaining args.
 func (c Config) FindCommand(args []string) (*Command, []string, error) {
-	curr := c.RootCommand
-	//rog.Print(curr)
-	lastIdx := -1
-	for i, a := range args {
-		//rog.Print(a)
-		c, found := curr.SubCommands[a]
-		//rog.Print(c, found)
-		if !found {
-			break
-		}
-
-		lastIdx = i
-		curr = c
-	}
-
-	//rog.Print(lastIdx)
-	if lastIdx == -1 {
-		return nil, nil, errors.New("not found")
-	}
-
-	return curr, args[lastIdx+1:], nil
+	exact := !c.SubMatch
+	return c.RootCommand.FindCommand(args, exact)
 }
 
 // AddCommand adds a Command newCmd to the location specified by names.

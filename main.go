@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,12 +32,18 @@ type globalCmd struct {
 
 	List     bool `cli:"list,list-by-name"`
 	ListPath bool `cli:"list-by-path"`
+
+	Config bool `help:"set configuration entry"`
 }
 
 // Before checks commandline validity.
-func (c globalCmd) Before() error {
+func (c globalCmd) Before(args []string) error {
 	if c.Add != "" && c.Remove != "" {
 		return errors.New("don't pass both --add and --remove!!")
+	}
+
+	if c.Config && len(args) > 0 && len(args)%2 != 0 {
+		return errors.New("--config requires an even number of arguments")
 	}
 
 	return nil
@@ -61,6 +68,24 @@ func (c globalCmd) Run(args []string) error {
 			return err
 		}
 		printCommands(args[len(args)-1], *fcmd, configPath, c.ListPath)
+		return nil
+	}
+
+	if c.Config {
+		if len(args) == 0 {
+			return errors.New("not implemented")
+		}
+
+		err := setConfig(&config, args)
+		if err != nil {
+			return err
+		}
+
+		err = saveConfig(configPath, config)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -240,6 +265,24 @@ func printCommands(name string, fcmd Command, configPath string, byPath bool) {
 	fmt.Printf("Config: %s\n", configPath)
 }
 
+func setConfig(config *Config, args []string) error {
+	for i := 0; i < len(args)/2; i++ {
+		switch args[i] {
+		case "submatch":
+			test, ok := strconv.ParseBool(args[i+1])
+			if ok != nil {
+				return fmt.Errorf("value %q is invalid for config entry %q", args[i+1], args[i])
+			}
+			config.SubMatch = test
+
+		default:
+			return fmt.Errorf("config entry %q not found", args[i])
+		}
+	}
+
+	return nil
+}
+
 func addCommand(config Config, name, path string, args []string) error {
 	names := strings.Split(name, ".")
 	cmd := Command{
@@ -370,6 +413,13 @@ func main() {
 # make another faker
   copy {appname} another.exe
   another --add gitinit echo hoge hoge
+# sub match
+  {appname} --config submatch true
+  {appname} --add sub notepad
+  {appname} su
+  {appname} s
+  {appname} --add subsub calc
+  {appname} s # error: ambiguous
 
 ----
 

@@ -26,6 +26,51 @@ func (c Command) IsRunnable() bool {
 	return c.Path != ""
 }
 
+// FindCommand returns a sub/subsub/... command found in SumCommands recursively.
+func (c Command) FindCommand(args []string, exact bool) (*Command, []string, error) {
+	curr := &c
+
+	lastIdx := -1
+	for i, a := range args {
+		c, err := curr.findChildCommand(a, exact)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		lastIdx = i
+		curr = c
+	}
+
+	//rog.Print(lastIdx)
+	if lastIdx == -1 {
+		return nil, nil, errors.New("not found")
+	}
+
+	return curr, args[lastIdx+1:], nil
+}
+
+func (c Command) findChildCommand(name string, exact bool) (*Command, error) {
+	if exact {
+		if c, found := c.SubCommands[name]; found {
+			return c, nil
+		}
+		return nil, errors.New("not found")
+	}
+
+	var candidates []*Command
+	for n, sub := range c.SubCommands {
+		if strings.HasPrefix(n, name) {
+			candidates = append(candidates, sub)
+		}
+	}
+	if len(candidates) == 1 {
+		return candidates[0], nil
+	} else if len(candidates) > 1 {
+		return nil, errors.New("ambiguous")
+	}
+	return nil, errors.New("not found")
+}
+
 // PrintCommand prints itself and its SubCommands to stddout.
 func (c Command) PrintCommand(name string, byPath bool, indent int) {
 	//rog.Printf("PrintCommand: %v, %v", name, indent)
