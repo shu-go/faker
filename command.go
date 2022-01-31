@@ -37,6 +37,10 @@ func (c Command) FindCommand(args []string, exact bool) (*Command, []string, err
 			return nil, nil, err
 		}
 
+		if c == nil {
+			break
+		}
+
 		lastIdx = i
 		curr = c
 	}
