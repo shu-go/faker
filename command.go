@@ -59,6 +59,9 @@ func (c Command) findChildCommand(name string, exact bool) (*Command, error) {
 
 	var candidates []*Command
 	for n, sub := range c.SubCommands {
+		if n == name {
+			return sub, nil
+		}
 		if strings.HasPrefix(n, name) {
 			candidates = append(candidates, sub)
 		}
