@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -63,7 +64,11 @@ func (c Config) Save(out io.Writer) error {
 // FindCommand takes commandline args and split into a Command and remaining args.
 func (c Config) FindCommand(args []string) (*Command, []string, error) {
 	exact := !c.SubMatch
-	return c.RootCommand.FindCommand(args, exact)
+	cmd, args, err := c.RootCommand.FindCommand(args, exact)
+	if err == nil && cmd == nil {
+		return nil, nil, errors.New("not found")
+	}
+	return cmd, args, err
 }
 
 // AddCommand adds a Command newCmd to the location specified by names.

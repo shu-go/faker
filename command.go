@@ -54,7 +54,7 @@ func (c Command) findChildCommand(name string, exact bool) (*Command, error) {
 		if c, found := c.SubCommands[name]; found {
 			return c, nil
 		}
-		return nil, errors.New("not found")
+		return nil, nil
 	}
 
 	var candidates []*Command
@@ -71,7 +71,7 @@ func (c Command) findChildCommand(name string, exact bool) (*Command, error) {
 	} else if len(candidates) > 1 {
 		return nil, errors.New("ambiguous")
 	}
-	return nil, errors.New("not found")
+	return nil, nil
 }
 
 // PrintCommand prints itself and its SubCommands to stddout.
