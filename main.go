@@ -57,23 +57,10 @@ func (c globalCmd) Run(args []string) error {
 		fmt.Fprintln(os.Stderr, err)
 	}
 
-	if c.Add == "" && c.Remove == "" && len(args) < 1 {
-		//config.PrintCommands(configPath, c.ListPath)
-		printCommands("", *config.RootCommand, configPath, c.ListPath)
-		return nil
-	}
-	if c.List || c.ListPath {
-		fcmd, _, err := config.FindCommand(args)
-		if err != nil {
-			return err
-		}
-		printCommands(args[len(args)-1], *fcmd, configPath, c.ListPath)
-		return nil
-	}
-
 	if c.Config {
 		if len(args) == 0 {
-			return errors.New("not implemented")
+			printConfigs(configPath, config)
+			return nil
 		}
 
 		err := setConfig(&config, args)
@@ -86,6 +73,19 @@ func (c globalCmd) Run(args []string) error {
 			return err
 		}
 
+		return nil
+	}
+
+	if c.Add == "" && c.Remove == "" && len(args) < 1 {
+		printCommands("", *config.RootCommand, configPath, config, c.ListPath)
+		return nil
+	}
+	if c.List || c.ListPath {
+		fcmd, _, err := config.FindCommand(args)
+		if err != nil {
+			return err
+		}
+		printCommands(args[len(args)-1], *fcmd, configPath, config, c.ListPath)
 		return nil
 	}
 
@@ -120,7 +120,7 @@ func (c globalCmd) Run(args []string) error {
 		return err
 	}
 	if !fcmd.IsRunnable() {
-		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, c.ListPath)
+		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, config, c.ListPath)
 		return nil
 	}
 
@@ -257,12 +257,17 @@ func saveConfig(configPath string, config Config) error {
 	return nil
 }
 
-func printCommands(name string, fcmd Command, configPath string, byPath bool) {
+func printCommands(name string, fcmd Command, configPath string, config Config, byPath bool) {
 	fmt.Println("Commands:")
 	fcmd.PrintCommand(name, byPath, -1)
 
 	fmt.Println("")
+	printConfigs(configPath, config)
+}
+
+func printConfigs(configPath string, config Config) {
 	fmt.Printf("Config: %s\n", configPath)
+	fmt.Printf("\tsubmatch: %v\n", config.SubMatch)
 }
 
 func setConfig(config *Config, args []string) error {
