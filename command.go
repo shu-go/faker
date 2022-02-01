@@ -62,18 +62,20 @@ func (c Command) findChildCommand(name string, exact bool) (*Command, error) {
 	}
 
 	var candidates []*Command
+	var candidateNames []string
 	for n, sub := range c.SubCommands {
 		if n == name {
 			return sub, nil
 		}
 		if strings.HasPrefix(n, name) {
 			candidates = append(candidates, sub)
+			candidateNames = append(candidateNames, n)
 		}
 	}
 	if len(candidates) == 1 {
 		return candidates[0], nil
 	} else if len(candidates) > 1 {
-		return nil, errors.New("ambiguous")
+		return nil, fmt.Errorf("ambiguous %v?", candidateNames)
 	}
 	return nil, nil
 }
