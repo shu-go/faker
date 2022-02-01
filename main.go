@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -271,21 +270,7 @@ func printConfigs(configPath string, config Config) {
 }
 
 func setConfig(config *Config, args []string) error {
-	for i := 0; i < len(args)/2; i++ {
-		switch args[i] {
-		case "submatch":
-			test, ok := strconv.ParseBool(args[i+1])
-			if ok != nil {
-				return fmt.Errorf("value %q is invalid for config entry %q", args[i+1], args[i])
-			}
-			config.SubMatch = test
-
-		default:
-			return fmt.Errorf("config entry %q not found", args[i])
-		}
-	}
-
-	return nil
+	return config.SetVariables(args)
 }
 
 func addCommand(config Config, name, path string, args []string) error {
