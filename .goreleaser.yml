@@ -37,5 +37,10 @@ archives:
     files:
       - LICENSE*
       - README*
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^test:'
 release:
   prerelease: auto
