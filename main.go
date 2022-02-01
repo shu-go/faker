@@ -267,7 +267,7 @@ func printCommands(name string, fcmd Command, configPath string, config Config, 
 
 func printConfigs(configPath string, config Config) {
 	fmt.Printf("Config: %s\n", configPath)
-	fmt.Printf("\tsubmatch: %v\n", config.SubMatch)
+	config.PrintVariables(os.Stdout)
 }
 
 func setConfig(config *Config, args []string) error {

@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -59,6 +60,10 @@ func (c Config) Save(out io.Writer) error {
 	}
 
 	return nil
+}
+
+func (c Config) PrintVariables(out io.Writer) {
+	fmt.Fprintf(out, "\tsubmatch: %v\n", c.SubMatch)
 }
 
 // FindCommand takes commandline args and split into a Command and remaining args.
