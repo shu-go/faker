@@ -11,13 +11,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shu-go/gli"
+	"github.com/shu-go/gli/v2"
 )
 
 // Version is app version
 var Version string
 
 const userConfigFolder = "faker"
+
+var exts = []string{
+	".yaml",
+	".yml",
+	".json",
+	".config",
+}
 
 func init() {
 	if Version == "" {
@@ -50,6 +57,7 @@ func (c globalCmd) Before(args []string) error {
 
 func (c globalCmd) Run(args []string) error {
 	configPath := determineConfigPath()
+	println(configPath)
 
 	config, err := loadConfig(configPath)
 	if err != nil {
@@ -58,16 +66,16 @@ func (c globalCmd) Run(args []string) error {
 
 	if c.Config {
 		if len(args) == 0 {
-			printConfigs(configPath, config)
+			printConfigs(configPath, *config)
 			return nil
 		}
 
-		err := setConfig(&config, args)
+		err := setConfig(config, args)
 		if err != nil {
 			return err
 		}
 
-		err = saveConfig(configPath, config)
+		err = saveConfig(configPath, *config)
 		if err != nil {
 			return err
 		}
@@ -76,7 +84,7 @@ func (c globalCmd) Run(args []string) error {
 	}
 
 	if c.Add == "" && c.Remove == "" && len(args) < 1 {
-		printCommands("", *config.RootCommand, configPath, config, c.ListPath)
+		printCommands("", *config.RootCommand, configPath, *config, c.ListPath)
 		return nil
 	}
 	if c.List || c.ListPath {
@@ -84,17 +92,17 @@ func (c globalCmd) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		printCommands(args[len(args)-1], *fcmd, configPath, config, c.ListPath)
+		printCommands(args[len(args)-1], *fcmd, configPath, *config, c.ListPath)
 		return nil
 	}
 
 	if c.Add != "" {
-		err := addCommand(config, c.Add, args[0], args[1:])
+		err := addCommand(*config, c.Add, args[0], args[1:])
 		if err != nil {
 			return err
 		}
 
-		err = saveConfig(configPath, config)
+		err = saveConfig(configPath, *config)
 		if err != nil {
 			return err
 		}
@@ -102,12 +110,12 @@ func (c globalCmd) Run(args []string) error {
 	}
 
 	if c.Remove != "" {
-		err := removeCommand(config, c.Remove)
+		err := removeCommand(*config, c.Remove)
 		if err != nil {
 			return err
 		}
 
-		err = saveConfig(configPath, config)
+		err = saveConfig(configPath, *config)
 		if err != nil {
 			return err
 		}
@@ -119,7 +127,7 @@ func (c globalCmd) Run(args []string) error {
 		return err
 	}
 	if !fcmd.IsRunnable() {
-		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, config, c.ListPath)
+		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, *config, c.ListPath)
 		return nil
 	}
 
@@ -145,49 +153,52 @@ func determineAppName(defaultName string) string {
 }
 
 func determineConfigPath() string {
-	ep, err := os.Executable()
+	exePath, err := os.Executable()
 	if err != nil {
 		return ""
 	}
+	exePath = exePath[:len(exePath)-len(filepath.Ext(exePath))]
 
-	ext := filepath.Ext(ep)
-	if ext == "" {
-		ep += ".json"
-	} else {
-		ep = ep[:len(ep)-len(ext)] + ".json"
+	// executable path
+
+	for _, e := range exts {
+		configPath := exePath + e
+		info, err := os.Stat(exePath)
+		if err == nil && !info.IsDir() {
+			return configPath
+		}
 	}
 
-	info, err := os.Stat(ep)
-	if err == nil && !info.IsDir() {
-		return ep
-	}
-	// remember the ep
+	// user config directory
 
-	// if ep not found, search for config dir
+	configname := filepath.Base(exePath)
 
-	configname := filepath.Base(ep)
-
-	cp, err := os.UserConfigDir()
+	userConfigPath, err := os.UserConfigDir()
 	if err != nil {
-		return ep
+		return exePath
 	}
 
-	cp = filepath.Join(cp, userConfigFolder, configname)
-
-	info, err = os.Stat(cp)
-	if err == nil && !info.IsDir() {
-		return cp
+	for _, e := range exts {
+		userConfigPath = filepath.Join(userConfigPath, userConfigFolder, configname) + e
+		info, err := os.Stat(userConfigPath)
+		if err == nil && !info.IsDir() {
+			return userConfigPath
+		}
 	}
 
-	return ep
+	return exePath + ".yaml"
 }
 
-func loadConfig(configPath string) (Config, error) {
+func loadConfig(configPath string) (*Config, error) {
 	file, err := os.Open(configPath)
 	if err != nil {
-		return *NewConfig(), nil
+		return NewConfig(), nil
 	}
 	defer file.Close()
+
+	if in(filepath.Ext(configPath), ".yaml", ".yml") {
+		return LoadYAMLConfig(file)
+	}
 
 	config, _ := LoadConfig(file)
 	if config == nil {
@@ -204,13 +215,13 @@ func loadConfig(configPath string) (Config, error) {
 		_, err = file.Seek(0, 0)
 		if err != nil {
 			file.Close()
-			return *NewConfig(), err
+			return NewConfig(), err
 		}
 
 		content, err := io.ReadAll(file)
 		if err != nil {
 			file.Close()
-			return *NewConfig(), err
+			return NewConfig(), err
 		}
 
 		file.Close()
@@ -218,7 +229,7 @@ func loadConfig(configPath string) (Config, error) {
 		var oldConfig OldConfig
 		err = json.Unmarshal(content, &oldConfig)
 		if err != nil {
-			return *NewConfig(), err
+			return NewConfig(), err
 		}
 
 		config = NewConfig()
@@ -228,16 +239,16 @@ func loadConfig(configPath string) (Config, error) {
 				Args: oc.Args,
 			}
 			err := config.AddCommand([]string{oc.Name}, cmd)
-			return *config, err
+			return config, err
 		}
 
 		err = saveConfig(configPath, *config)
 		if err != nil {
-			return *config, err
+			return config, err
 		}
 	}
 
-	return *config, nil
+	return config, nil
 }
 
 func saveConfig(configPath string, config Config) error {
@@ -246,7 +257,12 @@ func saveConfig(configPath string, config Config) error {
 		return err
 	}
 
-	err = config.Save(file)
+	if in(filepath.Ext(configPath), ".yaml", ".yml") {
+		err = config.SaveYAML(file)
+	} else {
+		err = config.Save(file)
+	}
+
 	if err != nil {
 		return err
 	}
@@ -382,6 +398,19 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 }
 
 func in(s string, choices ...string) bool {
+	if len(choices) == 0 {
+		return false
+	}
+
+	for i := 0; i < len(choices); i++ {
+		if strings.EqualFold(s, choices[i]) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func main() {
 	appname := determineAppName("f")
 

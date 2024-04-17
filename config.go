@@ -9,14 +9,15 @@ import (
 	"strings"
 
 	"github.com/shu-go/clise"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // Config is saved as a JSON file.
 type Config struct {
 	// RootCommand (type *+Command) is a root node of Comand tree.
-	RootCommand *Command `json:"cmds,omitempty"`
+	RootCommand *Command `json:"cmds,omitempty" yaml:"cmds,omitempty"`
 
-	SubMatch bool `json:"submatch,omitempty"`
+	SubMatch bool `json:"submatch,omitempty" yaml:"submatch,omitempty"`
 }
 
 // NewConfig returns a empty and working Config.
@@ -47,9 +48,43 @@ func LoadConfig(in io.Reader) (*Config, error) {
 	return &c, nil
 }
 
+func LoadYAMLConfig(in io.Reader) (*Config, error) {
+	var c Config
+
+	content, err := io.ReadAll(in)
+	if err != nil {
+		return nil, err
+	}
+
+	err = yaml.Unmarshal(content, &c)
+	if err != nil || c.RootCommand == nil {
+		return nil, err
+	}
+
+	if c.RootCommand.SubCommands == nil {
+		c.RootCommand.SubCommands = make(map[string]*Command)
+	}
+
+	return &c, nil
+}
+
 // Save writes to a Writer out.
 func (c Config) Save(out io.Writer) error {
 	content, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	_, err = out.Write(content)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c Config) SaveYAML(out io.Writer) error {
+	content, err := yaml.Marshal(c)
 	if err != nil {
 		return err
 	}

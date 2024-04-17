@@ -9,10 +9,10 @@ import (
 
 // Command have both runnable command data (Path and Args) and group data (SubCommands).
 type Command struct {
-	Path string   `json:"path,omitempty"`
-	Args []string `json:"args,omitempty"`
+	Path string   `json:"path,omitempty" yaml:"path,omitempty"`
+	Args []string `json:"args,omitempty" yaml:"args,omitempty,flow"`
 
-	SubCommands map[string]*Command `json:"sub,omitempty"`
+	SubCommands map[string]*Command `json:"sub,omitempty" yaml:"sub,omitempty"`
 }
 
 // IsGroup returns if Command c is also a group.
