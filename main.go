@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -207,7 +207,7 @@ func loadConfig(configPath string) (Config, error) {
 			return *NewConfig(), err
 		}
 
-		content, err := ioutil.ReadAll(file)
+		content, err := io.ReadAll(file)
 		if err != nil {
 			file.Close()
 			return *NewConfig(), err
@@ -381,6 +381,7 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 	return 0, nil
 }
 
+func in(s string, choices ...string) bool {
 func main() {
 	appname := determineAppName("f")
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -31,7 +30,7 @@ func NewConfig() *Config {
 func LoadConfig(in io.Reader) (*Config, error) {
 	var c Config
 
-	content, err := ioutil.ReadAll(in)
+	content, err := io.ReadAll(in)
 	if err != nil {
 		return nil, err
 	}
