@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -153,40 +154,39 @@ func (c Config) FindCommand(args []string) (*Command, []string, error) {
 		return 1
 	})
 
-	// challenge exact
+	// challenge submatch
 
 	filtered := slices.Clone(names)
-	for ia, a := range args {
-		filtered = slices.DeleteFunc(filtered, func(n []string) bool {
-			if len(n) < ia+1 {
-				return true
-			}
-			return !strings.EqualFold(n[ia], a)
-		})
+	if c.SubMatch {
+		filtered = slices.DeleteFunc(filtered, deleteBy(args, strings.HasPrefix))
 	}
+	slices.SortFunc(filtered, sortByLen)
 
-	if len(filtered) == 0 {
-		// challenge submatch
+	if len(filtered) > 1 && len(filtered[0]) == len(filtered[1]) {
+		// challenge exact match
 
-		filtered = slices.Clone(names)
-		for ia, a := range args {
-			filtered = slices.DeleteFunc(filtered, func(n []string) bool {
-				if len(n) < ia+1 {
-					return true
-				}
-				return !strings.Contains(n[ia], a)
-			})
+		filtered2 := slices.Clone(filtered)
+		filtered2 = slices.DeleteFunc(filtered2, deleteBy(args, strings.EqualFold))
+
+		if len(filtered2) == 0 && len(filtered) > 1 && len(filtered[0]) == len(filtered[1]) {
+			return nil, nil, fmt.Errorf("Ambiguous. %+v?", filtered)
 		}
+
+		filtered = filtered2
+
+		slices.SortFunc(filtered, sortByLen)
 	}
 
 	if len(filtered) > 0 {
+		slices.SortFunc(filtered, sortByLen)
+
 		key := strings.Join(filtered[0], ".")
 		cmd, _ := c.Commands.Get(key)
 		ss := strings.Split(key, ".")
 		return &cmd, args[len(ss):], nil
 	}
 
-	return nil, args, nil
+	return nil, nil, errors.New("Not found")
 }
 
 // AddCommand adds a Command newCmd to the location specified by names.
@@ -321,4 +321,34 @@ func (c *Config) Upgrade(configPath string) error {
 	}
 
 	return nil
+}
+
+// desc
+func sortByLen(a, b []string) int {
+	if len(a) < len(b) {
+		return 1
+	}
+	if len(a) > len(b) {
+		return -1
+	}
+	return 0
+
+}
+
+func deleteBy(args []string, match func(a, b string) bool) func([]string) bool {
+	return func(ss []string) bool {
+		last := -1
+		for ia, a := range args {
+			if len(ss) < ia+1 {
+				// not all names in f given by args
+				break
+			}
+			if !match(ss[ia], a) {
+				// name mismatch
+				break
+			}
+			last = ia
+		}
+		return len(ss) != last+1
+	}
 }

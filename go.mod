@@ -3,7 +3,6 @@ module github.com/shu-go/faker
 go 1.22
 
 require (
-	github.com/shu-go/clise v0.0.0-20190822023516-79849fb81cfe
 	github.com/shu-go/gli/v2 v2.2.0
 	github.com/shu-go/orderedmap v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
