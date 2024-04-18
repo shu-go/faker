@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -57,11 +55,29 @@ func (c globalCmd) Before(args []string) error {
 
 func (c globalCmd) Run(args []string) error {
 	configPath := determineConfigPath()
-	println(configPath)
 
 	config, err := loadConfig(configPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+	}
+
+	if config == nil {
+		fmt.Fprintln(os.Stderr, "upgrade config (empty)")
+
+		config = &Config{}
+		err = config.Upgrade(configPath)
+		if err != nil {
+			return err
+		}
+
+	} else if config.Version < 2 {
+		fmt.Fprintln(os.Stderr, "upgrade config (version < 2)")
+
+		config = &Config{}
+		err = config.Upgrade(configPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	if c.Config {
@@ -84,15 +100,11 @@ func (c globalCmd) Run(args []string) error {
 	}
 
 	if c.Add == "" && c.Remove == "" && len(args) < 1 {
-		printCommands("", *config.RootCommand, configPath, *config, c.ListPath)
+		printCommands(configPath, *config, c.ListPath)
 		return nil
 	}
 	if c.List || c.ListPath {
-		fcmd, _, err := config.FindCommand(args)
-		if err != nil {
-			return err
-		}
-		printCommands(args[len(args)-1], *fcmd, configPath, *config, c.ListPath)
+		printCommands(configPath, *config, c.ListPath)
 		return nil
 	}
 
@@ -125,10 +137,6 @@ func (c globalCmd) Run(args []string) error {
 	fcmd, fargs, err := config.FindCommand(args)
 	if err != nil {
 		return err
-	}
-	if !fcmd.IsRunnable() {
-		printCommands(args[len(args)-len(fargs)-1], *fcmd, configPath, *config, c.ListPath)
-		return nil
 	}
 
 	exitCode, err := execCommand(fcmd, fargs)
@@ -163,7 +171,7 @@ func determineConfigPath() string {
 
 	for _, e := range exts {
 		configPath := exePath + e
-		info, err := os.Stat(exePath)
+		info, err := os.Stat(configPath)
 		if err == nil && !info.IsDir() {
 			return configPath
 		}
@@ -200,55 +208,7 @@ func loadConfig(configPath string) (*Config, error) {
 		return LoadYAMLConfig(file)
 	}
 
-	config, _ := LoadConfig(file)
-	if config == nil {
-		type OldCommand struct {
-			Name string
-			Path string
-			Args []string
-		}
-
-		type OldConfig struct {
-			Commands []OldCommand
-		}
-
-		_, err = file.Seek(0, 0)
-		if err != nil {
-			file.Close()
-			return NewConfig(), err
-		}
-
-		content, err := io.ReadAll(file)
-		if err != nil {
-			file.Close()
-			return NewConfig(), err
-		}
-
-		file.Close()
-
-		var oldConfig OldConfig
-		err = json.Unmarshal(content, &oldConfig)
-		if err != nil {
-			return NewConfig(), err
-		}
-
-		config = NewConfig()
-		for _, oc := range oldConfig.Commands {
-			cmd := Command{
-				Path: oc.Path,
-				Args: oc.Args,
-			}
-			err := config.AddCommand([]string{oc.Name}, cmd)
-			return config, err
-		}
-
-		err = saveConfig(configPath, *config)
-		if err != nil {
-			return config, err
-		}
-	}
-
-	return config, nil
+	return LoadConfig(file)
 }
 
 func saveConfig(configPath string, config Config) error {
@@ -272,9 +232,9 @@ func saveConfig(configPath string, config Config) error {
 	return nil
 }
 
-func printCommands(name string, fcmd Command, configPath string, config Config, byPath bool) {
+func printCommands(configPath string, config Config, byPath bool) {
 	fmt.Println("Commands:")
-	fcmd.PrintCommand(name, byPath, -1)
+	config.PrintCommand(byPath)
 
 	fmt.Println("")
 	printConfigs(configPath, config)
@@ -296,10 +256,7 @@ func addCommand(config Config, name, path string, args []string) error {
 		Args: args,
 	}
 
-	err := config.AddCommand(names, cmd)
-	if err != nil {
-		return err
-	}
+	config.AddCommand(names, cmd)
 
 	return nil
 }
@@ -307,10 +264,7 @@ func addCommand(config Config, name, path string, args []string) error {
 func removeCommand(config Config, name string) error {
 	names := strings.Split(name, ".")
 
-	err := config.RemoveCommand(names)
-	if err != nil {
-		return err
-	}
+	config.RemoveCommand(names)
 
 	return nil
 }
