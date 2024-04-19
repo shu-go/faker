@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/shu-go/orderedmap"
 	yaml "gopkg.in/yaml.v3"
@@ -261,8 +262,9 @@ func (c *Config) Upgrade(configPath string) error {
 
 	fmt.Fprintf(os.Stderr, "backup config file to %q\n", configPath+".bak")
 
-	os.Remove(configPath + ".bak")
-	os.Rename(configPath, configPath+".bak")
+	bakfile := configPath + time.Now().Format("20060102150405") + ".bak"
+	os.Remove(bakfile)
+	os.Rename(configPath, bakfile)
 
 	fmt.Fprintln(os.Stderr, "version 1 -> 2")
 
