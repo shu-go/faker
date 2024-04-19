@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/shu-go/findcfg"
 	"github.com/shu-go/gli/v2"
 )
 
@@ -15,13 +16,6 @@ import (
 var Version string
 
 const userConfigFolder = "faker"
-
-var exts = []string{
-	".yaml",
-	".yml",
-	".json",
-	".config",
-}
 
 type globalCmd struct {
 	Add    string `help:"add/replace a command"`
@@ -47,7 +41,7 @@ func (c globalCmd) Before(args []string) error {
 }
 
 func (c globalCmd) Run(args []string) error {
-	configPath := determineConfigPath()
+	configPath := configPath()
 
 	config, err := loadConfig(configPath)
 	if err != nil {
@@ -143,7 +137,7 @@ func (c globalCmd) Run(args []string) error {
 	return nil
 }
 
-func determineAppName(defaultName string) string {
+func appName(defaultName string) string {
 	appname, err := os.Executable()
 	if err != nil {
 		return defaultName
@@ -153,41 +147,26 @@ func determineAppName(defaultName string) string {
 	return appname[:len(appname)-len(ext)]
 }
 
-func determineConfigPath() string {
+func configPath() string {
 	exePath, err := os.Executable()
 	if err != nil {
 		return ""
 	}
-	exePath = exePath[:len(exePath)-len(filepath.Ext(exePath))]
+	configName := filepath.Base(exePath)
+	configName = configName[:len(configName)-len(filepath.Ext(configName))]
 
-	// executable path
+	finder := findcfg.New(
+		findcfg.YAML(),
+		findcfg.JSON(),
+		findcfg.ExecutableDir(),
+		findcfg.UserConfigDir(userConfigFolder),
+	)
+	found := finder.Find(configName)
 
-	for _, e := range exts {
-		configPath := exePath + e
-		info, err := os.Stat(configPath)
-		if err == nil && !info.IsDir() {
-			return configPath
-		}
+	if found != nil {
+		return found.Path
 	}
-
-	// user config directory
-
-	configname := filepath.Base(exePath)
-
-	userConfigDir, err := os.UserConfigDir()
-	if err != nil {
-		return exePath
-	}
-
-	for _, e := range exts {
-		configPath := filepath.Join(userConfigDir, userConfigFolder, configname) + e
-		info, err := os.Stat(configPath)
-		if err == nil && !info.IsDir() {
-			return configPath
-		}
-	}
-
-	return exePath + ".yaml"
+	return finder.FallbackPath(configName)
 }
 
 func loadConfig(configPath string) (*Config, error) {
@@ -347,7 +326,7 @@ func in(s string, choices ...string) bool {
 }
 
 func main() {
-	appname := determineAppName("f")
+	appname := appName("f")
 
 	app := gli.NewWith(&globalCmd{})
 	app.Name = appname

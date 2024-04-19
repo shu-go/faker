@@ -3,6 +3,7 @@ module github.com/shu-go/faker
 go 1.22
 
 require (
+	github.com/shu-go/findcfg v0.0.0-20240419123445-fd09748ea166
 	github.com/shu-go/gli/v2 v2.2.0
 	github.com/shu-go/orderedmap v0.1.0
 	gopkg.in/yaml.v3 v3.0.1
