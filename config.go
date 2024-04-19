@@ -332,7 +332,6 @@ func sortByLen(a, b []string) int {
 		return -1
 	}
 	return 0
-
 }
 
 func deleteBy(args []string, match func(a, b string) bool) func([]string) bool {
