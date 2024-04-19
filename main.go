@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/shu-go/gli/v2"
 )
@@ -22,12 +21,6 @@ var exts = []string{
 	".yml",
 	".json",
 	".config",
-}
-
-func init() {
-	if Version == "" {
-		Version = "dev-" + time.Now().Format("20060102")
-	}
 }
 
 type globalCmd struct {
