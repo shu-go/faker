@@ -174,16 +174,16 @@ func determineConfigPath() string {
 
 	configname := filepath.Base(exePath)
 
-	userConfigPath, err := os.UserConfigDir()
+	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
 		return exePath
 	}
 
 	for _, e := range exts {
-		userConfigPath = filepath.Join(userConfigPath, userConfigFolder, configname) + e
-		info, err := os.Stat(userConfigPath)
+		configPath := filepath.Join(userConfigDir, userConfigFolder, configname) + e
+		info, err := os.Stat(configPath)
 		if err == nil && !info.IsDir() {
-			return userConfigPath
+			return configPath
 		}
 	}
 
