@@ -158,6 +158,7 @@ func configPath() string {
 	finder := findcfg.New(
 		findcfg.YAML(),
 		findcfg.JSON(),
+		findcfg.Ext(".config", ".conf"),
 		findcfg.ExecutableDir(),
 		findcfg.UserConfigDir(userConfigFolder),
 	)
@@ -179,7 +180,14 @@ func loadConfig(configPath string) (*Config, error) {
 	if in(filepath.Ext(configPath), ".yaml", ".yml") {
 		return LoadYAMLConfig(file)
 	}
+	if in(filepath.Ext(configPath), ".json") {
+		return LoadConfig(file)
+	}
 
+	config, err := LoadYAMLConfig(file)
+	if err == nil {
+		return config, err
+	}
 	return LoadConfig(file)
 }
 
