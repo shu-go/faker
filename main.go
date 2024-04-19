@@ -271,15 +271,10 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 		curr.Path = p
 	}
 	curr.Args = append(curr.Args, fcmd.Path)
-	//rog.Print("fcmd.Args:", fcmd.Args)
 	for i, a := range fcmd.Args {
-		//rog.Print(a)
-
 		if strings.HasPrefix(a, "|") {
 			oscmds = append(oscmds, exec.Cmd{})
 			curr = &oscmds[len(oscmds)-1]
-
-			//rog.Print("new cmd")
 
 			if fcmd.Args[i] != "|" {
 				curr.Path = a[1:]
@@ -300,11 +295,8 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 			} else {
 				curr.Args = append(curr.Args, a)
 			}
-			//rog.Printf("curr: %T", curr)
 		}
 	}
-
-	//rog.Print("oscmds", len(oscmds))
 
 	oscmds[0].Args = append(oscmds[0].Args, fargs...)
 
@@ -313,7 +305,6 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 	oscmds[len(oscmds)-1].Stdout = os.Stdout
 	oscmds[len(oscmds)-1].Stderr = os.Stderr
 	for i := 1; i < len(oscmds); i++ {
-		//rog.Print("pipe")
 		stdoutPipe, err := oscmds[i-1].StdoutPipe()
 		if err != nil {
 			return 1, fmt.Errorf("stdoutPipe: %w", err)
@@ -321,10 +312,8 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 		oscmds[i].Stdin = stdoutPipe
 		oscmds[i].Stderr = os.Stderr
 	}
-	//rog.Printf("oscmds:%#v", oscmds)
 
 	for i := range oscmds {
-		//rog.Printf("starting %#v", c)
 		err = oscmds[i].Start()
 		if err != nil {
 			return 1, fmt.Errorf("start: %w", err)
@@ -333,7 +322,6 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 
 	for i := range oscmds {
 		err = oscmds[i].Wait()
-		//rog.Print(oscmds[i], err)
 		if i == len(oscmds)-1 && err != nil {
 			var exit *exec.ExitError
 			if errors.As(err, &exit) {
