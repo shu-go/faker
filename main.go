@@ -18,8 +18,8 @@ var Version string
 const userConfigFolder = "faker"
 
 type globalCmd struct {
-	Add    string `help:"add/replace a command"`
-	Remove string `help:"remove a command"`
+	Add    string `cli:"add,a" help:"add/replace a command"`
+	Remove string `cli:"remove,r,delete,d" help:"remove a command"`
 
 	List     bool `cli:"list,list-by-name"`
 	ListPath bool `cli:"list-by-path"`
