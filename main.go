@@ -21,6 +21,9 @@ type globalCmd struct {
 	Add    string `cli:"add,a" help:"add/replace a command"`
 	Remove string `cli:"remove,r,delete,d" help:"remove a command"`
 
+	Lock   string `cli:"lock"`
+	Unlock string `cli:"unlock"`
+
 	List     bool `cli:"list,list-by-name"`
 	ListPath bool `cli:"list-by-path"`
 
@@ -86,7 +89,7 @@ func (c globalCmd) Run(args []string) error {
 		return nil
 	}
 
-	if c.Add == "" && c.Remove == "" && len(args) < 1 {
+	if c.Add == "" && c.Remove == "" && c.Lock == "" && c.Unlock == "" && len(args) < 1 {
 		printCommands(configPath, *config, c.ListPath)
 		return nil
 	}
@@ -110,6 +113,32 @@ func (c globalCmd) Run(args []string) error {
 
 	if c.Remove != "" {
 		err := removeCommand(*config, c.Remove)
+		if err != nil {
+			return err
+		}
+
+		err = saveConfig(configPath, *config)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if c.Lock != "" {
+		err := lockCommand(*config, c.Lock, true)
+		if err != nil {
+			return err
+		}
+
+		err = saveConfig(configPath, *config)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if c.Unlock != "" {
+		err := lockCommand(*config, c.Unlock, false)
 		if err != nil {
 			return err
 		}
@@ -230,22 +259,21 @@ func setConfig(config *Config, args []string) error {
 }
 
 func addCommand(config Config, name, path string, args []string) error {
-	names := strings.Split(name, ".")
-	cmd := Command{
-		Path: path,
-		Args: args,
-	}
-
-	config.AddCommand(names, cmd)
-
-	return nil
+	return config.AddCommand(
+		strings.Split(name, "."),
+		Command{
+			Path: path,
+			Args: args,
+		},
+	)
 }
 
 func removeCommand(config Config, name string) error {
-	names := strings.Split(name, ".")
+	return config.RemoveCommand(strings.Split(name, "."))
+}
 
-	config.RemoveCommand(names)
-
+func lockCommand(config Config, name string, locked bool) error {
+	config.LockCommand(strings.Split(name, "."), locked)
 	return nil
 }
 

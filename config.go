@@ -17,6 +17,11 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+var (
+	ErrNotFound = errors.New("command not found")
+	ErrLocked   = errors.New("locked")
+)
+
 // Config is saved as a JSON file.
 type Config struct {
 	Version int `json:"version" yaml:"version"`
@@ -126,8 +131,6 @@ func (c *Config) SetVariables(args []string) error {
 	return nil
 }
 
-var ErrNotFound = errors.New("command not found")
-
 // FindCommand takes commandline args and split into a Command and remaining args.
 func (c Config) FindCommand(args []string) (*Command, []string, error) {
 	keys := c.Commands.Keys()
@@ -182,21 +185,45 @@ func (c Config) FindCommand(args []string) (*Command, []string, error) {
 }
 
 // AddCommand adds a Command newCmd to the location specified by names.
-func (c *Config) AddCommand(names []string, newCmd Command) {
-	c.Commands.Set(strings.Join(names, "."), newCmd)
+func (c *Config) AddCommand(names []string, newCmd Command) error {
+	key := strings.Join(names, ".")
+	cmd, found := c.Commands.Get(key)
+	if found && cmd.Locked {
+		return ErrLocked
+	}
+
+	c.Commands.Set(key, newCmd)
+	return nil
 }
 
 // RemoveCommand removes a Command at the location specified by names.
-func (c *Config) RemoveCommand(names []string) {
-	c.Commands.Delete(strings.Join(names, "."))
+func (c *Config) RemoveCommand(names []string) error {
+	key := strings.Join(names, ".")
+	cmd, found := c.Commands.Get(key)
+	if found && cmd.Locked {
+		return ErrLocked
+	}
+
+	c.Commands.Delete(key)
+	return nil
+}
+
+func (c *Config) LockCommand(names []string, locked bool) {
+	key := strings.Join(names, ".")
+	cmd, found := c.Commands.Get(key)
+	if found {
+		cmd.Locked = locked
+		c.Commands.Set(key, cmd)
+	}
 }
 
 // PrintCommand prints Commands to stddout.
 func (c *Config) PrintCommand(byPath bool) {
 	type command struct {
-		Name string
-		Path string
-		Args []string
+		Name   string
+		Path   string
+		Args   []string
+		Locked bool
 	}
 
 	keys := c.Commands.Keys()
@@ -207,9 +234,10 @@ func (c *Config) PrintCommand(byPath bool) {
 		cmd, _ := c.Commands.Get(k)
 
 		cmds = append(cmds, command{
-			Name: k,
-			Path: cmd.Path,
-			Args: cmd.Args,
+			Name:   k,
+			Path:   cmd.Path,
+			Args:   cmd.Args,
+			Locked: cmd.Locked,
 		})
 	}
 	slices.SortFunc(cmds, func(a, b command) int {
@@ -220,7 +248,11 @@ func (c *Config) PrintCommand(byPath bool) {
 	})
 
 	for _, cmd := range cmds {
-		fmt.Printf("\t%s:\t%s %v\n", cmd.Name, cmd.Path, cmd.Args)
+		locked := ""
+		if cmd.Locked {
+			locked = " +LOCKED+"
+		}
+		fmt.Printf("\t%s:\t%s %v%s\n", cmd.Name, cmd.Path, cmd.Args, locked)
 	}
 }
 
