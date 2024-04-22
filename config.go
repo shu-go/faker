@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/shu-go/orderedmap"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -247,12 +248,17 @@ func (c *Config) PrintCommand(byPath bool) {
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	bold := color.New(color.FgHiYellow, color.Bold)
 	for _, cmd := range cmds {
-		locked := ""
 		if cmd.Locked {
-			locked = " +LOCKED+"
+			fmt.Print("\t")
+			bold.Print(cmd.Name)
+			fmt.Printf(":\t%s %v", cmd.Path, cmd.Args)
+			bold.Print(" +LOCKED+")
+			fmt.Print("\n")
+		} else {
+			fmt.Printf("\t%s:\t%s %v\n", cmd.Name, cmd.Path, cmd.Args)
 		}
-		fmt.Printf("\t%s:\t%s %v%s\n", cmd.Name, cmd.Path, cmd.Args, locked)
 	}
 }
 
