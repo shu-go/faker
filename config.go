@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,69 +126,59 @@ func (c *Config) SetVariables(args []string) error {
 	return nil
 }
 
+var ErrNotFound = errors.New("command not found")
+
 // FindCommand takes commandline args and split into a Command and remaining args.
 func (c Config) FindCommand(args []string) (*Command, []string, error) {
 	keys := c.Commands.Keys()
-	var names [][]string
-
+	names := make([][]string, 0, len(keys))
 	for _, k := range keys {
 		names = append(names, strings.Split(k, "."))
 	}
-	slices.SortFunc(names, func(a, b []string) int {
-		lena := len(a)
-		lenb := len(b)
-		l := lena
-		if l > lenb {
-			l = lenb
-		}
 
-		for i := 0; i < l; i++ {
-			cmp := strings.Compare(a[i], b[i])
-			if cmp != 0 {
-				return cmp
-			}
-			if cmp == 0 && i == l-1 /*last*/ {
-				if lena < lenb {
-					return -1
-				}
-			}
-		}
-		return 1
-	})
+	slices.SortFunc(names, sortBySliceElems)
+
+	rr := ranked(names)
 
 	// challenge submatch
 
-	filtered := slices.Clone(names)
 	if c.SubMatch {
-		filtered = slices.DeleteFunc(filtered, deleteBy(args, strings.HasPrefix))
-	}
-	slices.SortFunc(filtered, sortByLen)
+		rr.rank(strings.HasPrefix, args)
 
-	if len(filtered) > 1 && len(filtered[0]) == len(filtered[1]) {
-		// challenge exact match
-
-		filtered2 := slices.Clone(filtered)
-		filtered2 = slices.DeleteFunc(filtered2, deleteBy(args, strings.EqualFold))
-
-		if len(filtered2) == 0 && len(filtered) > 1 && len(filtered[0]) == len(filtered[1]) {
-			return nil, nil, fmt.Errorf("Ambiguous. %+v?", filtered)
+		if len(rr) == 0 {
+			return nil, nil, ErrNotFound
 		}
 
-		filtered = filtered2
+		if !rr.hasMultipleTopRankers() {
+			cmd, args := c.getCmdAndArgs(rr[0], args)
+			return cmd, args, nil
+		}
 
-		slices.SortFunc(filtered, sortByLen)
+		exactRR := slices.Clone(rr)
+		exactRR.rank(strings.EqualFold, args)
+
+		if len(exactRR) == 0 {
+			return nil, nil, fmt.Errorf("Ambiguous. %s?", rr.topRankers().allNames())
+		} else if len(exactRR) > 1 {
+			return nil, nil, fmt.Errorf("Ambiguous. %s?", exactRR.topRankers().allNames())
+		}
+
+		cmd, args := c.getCmdAndArgs(exactRR[0], args)
+		return cmd, args, nil
 	}
 
-	if len(filtered) > 0 {
-		slices.SortFunc(filtered, sortByLen)
+	rr.rank(strings.EqualFold, args)
 
-		key := strings.Join(filtered[0], ".")
-		cmd, _ := c.Commands.Get(key)
-		ss := strings.Split(key, ".")
-		return &cmd, args[len(ss):], nil
+	if len(rr) == 0 {
+		return nil, nil, ErrNotFound
 	}
 
-	return nil, nil, errors.New("Not found")
+	if !rr.hasMultipleTopRankers() {
+		cmd, args := c.getCmdAndArgs(rr[0], args)
+		return cmd, args, nil
+	}
+
+	return nil, nil, ErrNotFound
 }
 
 // AddCommand adds a Command newCmd to the location specified by names.
@@ -325,31 +316,125 @@ func (c *Config) Upgrade(configPath string) error {
 	return nil
 }
 
-// desc
-func sortByLen(a, b []string) int {
-	if len(a) < len(b) {
-		return 1
+// sort by slice[0] asc, slice[1] asc, ...
+//
+// x y
+// x y z
+// x z
+// y y
+// y y y
+// y y z
+// z x x
+func sortBySliceElems(a, b []string) int {
+	lena := len(a)
+	lenb := len(b)
+
+	minlen := lena
+	if minlen > lenb {
+		minlen = lenb
 	}
-	if len(a) > len(b) {
-		return -1
+
+	for i := 0; i < minlen; i++ {
+		cmp := strings.Compare(a[i], b[i])
+		if cmp != 0 {
+			return cmp
+		}
+		if cmp == 0 && i == minlen-1 /*last*/ {
+			if lena < lenb {
+				return -1
+			}
+		}
 	}
-	return 0
+	return 1
 }
 
-func deleteBy(args []string, match func(a, b string) bool) func([]string) bool {
-	return func(ss []string) bool {
-		last := -1
-		for ia, a := range args {
-			if len(ss) < ia+1 {
-				// not all names in f given by args
-				break
-			}
-			if !match(ss[ia], a) {
-				// name mismatch
-				break
-			}
-			last = ia
-		}
-		return len(ss) != last+1
+type rankedName struct {
+	rank int
+	name []string
+}
+
+type rankedNames []rankedName
+
+func ranked(names [][]string) rankedNames {
+	count := len(names)
+	rr := make(rankedNames, 0, count)
+	for i := 0; i < count; i++ {
+		rr = append(rr, rankedName{
+			rank: 0,
+			name: names[i],
+		})
 	}
+	return rr
+}
+
+func (c Config) getCmdAndArgs(r rankedName, args []string) (*Command, []string) {
+	key := strings.Join(r.name, ".")
+	cmd, found := c.Commands.Get(key)
+	if !found {
+		return nil, nil
+	}
+	return &cmd, args[len(r.name):]
+}
+
+func (rr *rankedNames) rank(match func(a, b string) bool, args []string) rankedNames {
+	ss := make(rankedNames, 0, len(*rr))
+
+	for ri := 0; ri < len(*rr); ri++ {
+		if len((*rr)[ri].name) > len(args) {
+			(*rr)[ri].rank = 0
+			continue
+		}
+
+		ok := true
+		for ni := 0; ni < len((*rr)[ri].name); ni++ {
+			if !match((*rr)[ri].name[ni], args[ni]) {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			(*rr)[ri].rank = len((*rr)[ri].name)
+		} else {
+			(*rr)[ri].rank = 0
+		}
+	}
+
+	(*rr) = slices.DeleteFunc((*rr), func(r rankedName) bool {
+		return r.rank == 0
+	})
+
+	// desc
+	slices.SortStableFunc((*rr), func(a, b rankedName) int {
+		return -cmp.Compare(a.rank, b.rank)
+	})
+
+	return ss
+}
+
+func (rr rankedNames) hasMultipleTopRankers() bool {
+	return len(rr) > 1 && rr[0].rank == rr[1].rank
+}
+
+func (rr rankedNames) topRankers() rankedNames {
+	if len(rr) == 0 {
+		return nil
+	}
+
+	toprank := rr[0].rank
+	ss := make(rankedNames, 0, 4)
+	for _, r := range rr {
+		if r.rank == toprank {
+			ss = append(ss, r)
+		}
+	}
+
+	return ss
+}
+
+func (rr rankedNames) allNames() string {
+	amb := make([][]string, 0, len(rr))
+	for _, r := range rr {
+		amb = append(amb, r.name)
+	}
+	return fmt.Sprintf("%+v", amb)
 }
