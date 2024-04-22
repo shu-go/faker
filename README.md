@@ -37,6 +37,16 @@ f --add m.c calc
 f m c
 ```
 
+## lock/unlock command
+
+```
+f --lock m.c
+f --remove m.c #=> locked
+f --add m.c notepad #=> locked
+
+f --unlock m.c
+```
+
 ## make another faker
 
 ```

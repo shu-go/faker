@@ -31,6 +31,7 @@ type Config struct {
 	Commands *orderedmap.OrderedMap[string, Command] `json:"commands,omitempty" yaml:"commands,omitempty"`
 
 	SubMatch bool `json:"submatch,omitempty" yaml:"submatch,omitempty"`
+	AutoLock bool `json:"autolock,omitempty" yaml:"autolock,omitempty"`
 }
 
 // NewConfig returns a empty and working Config.
@@ -112,6 +113,7 @@ func (c Config) SaveYAML(out io.Writer) error {
 
 func (c Config) PrintVariables(out io.Writer) {
 	fmt.Fprintf(out, "\tsubmatch: %v\n", c.SubMatch)
+	fmt.Fprintf(out, "\tautlock: %v\n", c.AutoLock)
 }
 
 func (c *Config) SetVariables(args []string) error {
@@ -123,6 +125,13 @@ func (c *Config) SetVariables(args []string) error {
 				return fmt.Errorf("value %q is invalid for config entry %q", args[i+1], args[i])
 			}
 			c.SubMatch = test
+
+		case "autolock":
+			test, ok := strconv.ParseBool(args[i+1])
+			if ok != nil {
+				return fmt.Errorf("value %q is invalid for config entry %q", args[i+1], args[i])
+			}
+			c.AutoLock = test
 
 		default:
 			return fmt.Errorf("config entry %q not found", args[i])
@@ -192,6 +201,8 @@ func (c *Config) AddCommand(names []string, newCmd Command) error {
 	if found && cmd.Locked {
 		return ErrLocked
 	}
+
+	newCmd.Locked = newCmd.Locked || c.AutoLock
 
 	c.Commands.Set(key, newCmd)
 	return nil
