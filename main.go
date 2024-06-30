@@ -36,6 +36,11 @@ func (c globalCmd) Before(args []string) error {
 		return errors.New("don't pass both --add and --remove!!")
 	}
 
+	if c.Add != "" && len(args) < 1 {
+		// require c.Add and args
+		return errors.New("--add requires at least 2 args")
+	}
+
 	if c.Config && len(args) > 0 && len(args)%2 != 0 {
 		return errors.New("--config requires an even number of arguments")
 	}
