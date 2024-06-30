@@ -204,6 +204,10 @@ func (c *Config) AddCommand(names []string, newCmd Command) error {
 
 	newCmd.Locked = newCmd.Locked || c.AutoLock
 
+	if c.Commands == nil {
+		c.Commands = orderedmap.New[string, Command]()
+	}
+
 	c.Commands.Set(key, newCmd)
 	return nil
 }
