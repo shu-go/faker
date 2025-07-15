@@ -382,10 +382,7 @@ func sortBySliceElems(a, b []string) int {
 	lena := len(a)
 	lenb := len(b)
 
-	minlen := lena
-	if minlen > lenb {
-		minlen = lenb
-	}
+	minlen := min(lena, lenb)
 
 	for i := 0; i < minlen; i++ {
 		cmp := strings.Compare(a[i], b[i])
@@ -411,7 +408,7 @@ type rankedNames []rankedName
 func ranked(names [][]string) rankedNames {
 	count := len(names)
 	rr := make(rankedNames, 0, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		rr = append(rr, rankedName{
 			rank: 0,
 			name: names[i],
