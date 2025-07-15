@@ -263,17 +263,24 @@ func (c *Config) PrintCommand(byPath bool) {
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	anyLocked := false
 	bold := color.New(color.FgHiYellow, color.Bold)
 	for _, cmd := range cmds {
+		anyLocked = true
 		if cmd.Locked {
 			fmt.Print("\t")
 			bold.Print(cmd.Name)
-			fmt.Printf(":\t%s %v", cmd.Path, cmd.Args)
-			bold.Print(" +LOCKED+")
-			fmt.Print("\n")
+			fmt.Printf(":\t%s %v\n", cmd.Path, cmd.Args)
 		} else {
 			fmt.Printf("\t%s:\t%s %v\n", cmd.Name, cmd.Path, cmd.Args)
 		}
+	}
+
+	if anyLocked {
+		fmt.Println("")
+		fmt.Print("\t(")
+		bold.Print("LOCKED")
+		fmt.Println(")")
 	}
 }
 
