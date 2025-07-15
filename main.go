@@ -54,23 +54,13 @@ func (c globalCmd) Run(args []string) error {
 	config, err := loadConfig(configPath)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
+		return err
 	}
 
-	if config == nil {
-		fmt.Fprintln(os.Stderr, "upgrade config (empty)")
-
+	if config == nil || config.Version < 2 {
+		fmt.Fprintln(os.Stderr, "upgrade config")
 		config = &Config{}
-		err = config.Upgrade(configPath)
-		if err != nil {
-			return err
-		}
-
-	} else if config.Version < 2 {
-		fmt.Fprintln(os.Stderr, "upgrade config (version < 2)")
-
-		config = &Config{}
-		err = config.Upgrade(configPath)
-		if err != nil {
+		if err := config.Upgrade(configPath); err != nil {
 			return err
 		}
 	}
@@ -81,17 +71,11 @@ func (c globalCmd) Run(args []string) error {
 			return nil
 		}
 
-		err := setConfig(config, args)
-		if err != nil {
+		if err := setConfig(config, args); err != nil {
 			return err
 		}
 
-		err = saveConfig(configPath, *config)
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return saveConfig(configPath, *config)
 	}
 
 	if c.Add == "" && c.Remove == "" && c.Lock == "" && c.Unlock == "" && len(args) < 1 {
@@ -104,55 +88,31 @@ func (c globalCmd) Run(args []string) error {
 	}
 
 	if c.Add != "" {
-		err := addCommand(*config, c.Add, args[0], args[1:])
-		if err != nil {
+		if err := addCommand(*config, c.Add, args[0], args[1:]); err != nil {
 			return err
 		}
-
-		err = saveConfig(configPath, *config)
-		if err != nil {
-			return err
-		}
-		return nil
+		return saveConfig(configPath, *config)
 	}
 
 	if c.Remove != "" {
-		err := removeCommand(*config, c.Remove)
-		if err != nil {
+		if err := removeCommand(*config, c.Remove); err != nil {
 			return err
 		}
-
-		err = saveConfig(configPath, *config)
-		if err != nil {
-			return err
-		}
-		return nil
+		return saveConfig(configPath, *config)
 	}
 
 	if c.Lock != "" {
-		err := lockCommand(*config, c.Lock, true)
-		if err != nil {
+		if err := lockCommand(*config, c.Lock, true); err != nil {
 			return err
 		}
-
-		err = saveConfig(configPath, *config)
-		if err != nil {
-			return err
-		}
-		return nil
+		return saveConfig(configPath, *config)
 	}
 
 	if c.Unlock != "" {
-		err := lockCommand(*config, c.Unlock, false)
-		if err != nil {
+		if err := lockCommand(*config, c.Unlock, false); err != nil {
 			return err
 		}
-
-		err = saveConfig(configPath, *config)
-		if err != nil {
-			return err
-		}
-		return nil
+		return saveConfig(configPath, *config)
 	}
 
 	fcmd, fargs, err := config.FindCommand(args)
@@ -221,7 +181,7 @@ func loadConfig(configPath string) (*Config, error) {
 
 	config, err := LoadYAMLConfig(file)
 	if err == nil {
-		return config, err
+		return config, nil
 	}
 	return LoadConfig(file)
 }
@@ -231,20 +191,12 @@ func saveConfig(configPath string, config Config) error {
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	if in(filepath.Ext(configPath), ".yaml", ".yml") {
-		err = config.SaveYAML(file)
-	} else {
-		err = config.Save(file)
+		return config.SaveYAML(file)
 	}
-
-	if err != nil {
-		return err
-	}
-
-	file.Close()
-
-	return nil
+	return config.Save(file)
 }
 
 func printCommands(configPath string, config Config, byPath bool) {
@@ -335,15 +287,13 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 	}
 
 	for i := range oscmds {
-		err = oscmds[i].Start()
-		if err != nil {
+		if err := oscmds[i].Start(); err != nil {
 			return 1, fmt.Errorf("start: %w", err)
 		}
 	}
 
 	for i := range oscmds {
-		err = oscmds[i].Wait()
-		if i == len(oscmds)-1 && err != nil {
+		if err := oscmds[i].Wait(); i == len(oscmds)-1 && err != nil {
 			var exit *exec.ExitError
 			if errors.As(err, &exit) {
 				return exit.ExitCode(), nil
@@ -354,16 +304,11 @@ func execCommand(fcmd *Command, fargs []string) (int, error) {
 }
 
 func in(s string, choices ...string) bool {
-	if len(choices) == 0 {
-		return false
-	}
-
-	for i := 0; i < len(choices); i++ {
-		if strings.EqualFold(s, choices[i]) {
+	for _, choice := range choices {
+		if strings.EqualFold(s, choice) {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -414,8 +359,7 @@ config dir:
 	app.Copyright = "(C) 2021 Shuhei Kubota"
 	app.DoubleHyphen = false
 	app.SuppressErrorOutput = true
-	err := app.Run(os.Args)
-	if err != nil {
+	if err := app.Run(os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
