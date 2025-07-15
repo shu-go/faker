@@ -190,18 +190,19 @@ func configPath() string {
 	configName = configName[:len(configName)-len(filepath.Ext(configName))]
 
 	finder := findcfg.New(
+		findcfg.Name(configName),
 		findcfg.YAML(),
 		findcfg.JSON(),
 		findcfg.Ext(".config", ".conf"),
 		findcfg.ExecutableDir(),
 		findcfg.UserConfigDir(userConfigFolder),
 	)
-	found := finder.Find(configName)
+	found := finder.Find()
 
 	if found != nil {
 		return found.Path
 	}
-	return finder.FallbackPath(configName)
+	return finder.FallbackPath()
 }
 
 func loadConfig(configPath string) (*Config, error) {
