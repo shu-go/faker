@@ -1,41 +1,41 @@
 version: 2
 project_name: faker
 env:
-  - GO111MODULE=on
+    - GO111MODULE=on
 before:
-  hooks:
-    - go mod tidy
-builds:
-  - binary: f
-    flags:
-      - -trimpath
-    ldflags:
-      - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Revision={{.ShortCommit}}
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - windows
-      - darwin
-      - linux
-    goarch:
-      - amd64
-      - 386
     hooks:
-      post: upx --lzma '{{ .Path }}'
+        - go mod tidy
+builds:
+    - binary: f
+      flags:
+        - -trimpath
+      ldflags:
+        - -s -w
+        - -X main.Version={{.Version}}
+        - -X main.Revision={{.ShortCommit}}
+      env:
+        - CGO_ENABLED=0
+      goos:
+        - windows
+        - darwin
+        - linux
+      goarch:
+        - amd64
+        - 386
+      hooks:
+        post: upx --lzma '{{ .Path }}'
 archives:
-  - name_template: '{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
-    format_overrides:
-      - goos: windows
-        format: zip
-    files:
-      - LICENSE*
-      - README*
+    - name_template: '{{ .ProjectName }}_v{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+      format_overrides:
+        - goos: windows
+          formats: ['zip']
+      files:
+        - LICENSE*
+        - README*
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - '^test:'
+    sort: asc
+    filters:
+        exclude:
+            - '^test:'
 release:
-  prerelease: auto
+    prerelease: auto
