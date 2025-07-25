@@ -266,8 +266,8 @@ func (c *Config) PrintCommand(byPath bool) {
 	anyLocked := false
 	bold := color.New(color.FgHiYellow, color.Bold)
 	for _, cmd := range cmds {
-		anyLocked = true
 		if cmd.Locked {
+			anyLocked = true
 			fmt.Print("\t")
 			bold.Print(cmd.Name)
 			fmt.Printf(":\t%s %v\n", cmd.Path, cmd.Args)
